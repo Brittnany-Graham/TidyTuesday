@@ -43,3 +43,92 @@ If you want, next I can:
 -   ~~Show you how to design plots like The Economist~~
 
 -   Help you create a personal ggplot theme you reuse every week
+
+## Midnight Narrative - WINNER
+
+```{r}
+midnight_narrative <- c(   
+  midnight = "#1D3557",   
+  coral = "#E76F51",   
+  blush = "#F4A261",   
+  rosewood = "#B56576",   
+  sage = "#6C9A8B",   
+  linen = "#F1FAEE",   
+  ink = "#222222" )  
+## other colors 
+#Darkened base  
+"#14213D"  
+# Deepen the coral 
+"#D8573C" 
+```
+
+### 🌌 MINI BRANDING GUIDE
+
+**Visual Hierarchy Rules (Very Important)**
+
+#### Foundation (70% of design)
+
+-   Background –\> linen
+
+-   Text –\> ink
+
+-   Titles –\> midnight
+
+-   Most bars –\> neutral/linen or soft grey
+
+#### Highlight (20%)
+
+-   Primary highlight –\> coral
+
+-   Secondary comparison –\> sage
+
+#### Emphasis (10%)
+
+-   Key insight –\> blush
+
+-   Annotation accents –\> rosewood
+
+Never use all accent colors at once
+
+Restriction = sophistication
+
+## Palette
+
+```{r}
+midnight_narrative <- c(
+  midnight = "#1D3557",
+  coral = "#E76F51",
+  blush = "#F4A261",
+  rosewood = "#B56576",
+  sage = "#6C9A8B",
+  linen = "#F1FAEE",
+  ink = "#222222"
+)
+```
+
+## Reusable Theme Function
+
+```{r}
+theme_midnight_narrative <- function() {
+  theme_minimal(base_size = 13) +
+    theme(
+      plot.background = element_rect(fill = "#F1FAEE", color = NA),
+      panel.background = element_rect(fill = "#F1FAEE", color = NA),
+      plot.title = element_text(
+        face = "bold",
+        size = 16,
+        color = "#1D3557",
+        margin = margin(b = 8)
+      ),
+      plot.subtitle = element_text(
+        color = "#222222",
+        margin = margin(b = 15)
+      ),
+      axis.text = element_text(color = "#222222"),
+      panel.grid.major.y = element_line(color = "grey85"),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      legend.position = "none"
+    )
+}
+```
