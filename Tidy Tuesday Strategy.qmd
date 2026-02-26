@@ -1,0 +1,45 @@
+---
+title: "Weekly Tidy Tuesday Strategy"
+author: "Brittnany Graham"
+format: html
+editor: visual
+---
+
+# Weekly Tidy Tuesday Strategy
+
+1.  Read data dictionary
+2.  Ask: What story can I tell?
+3.  Pick ***ONE*** clear insight
+4.  Build 1 - 2 clean plots
+5.  polish typography
+6.  Export high resolution
+
+That's it, don't overcomplicate.
+
+### What I want to do next:
+
+Next-level upgrades:
+
+-   Parameterized reports (choose week automatically)
+
+-   Custom CSS styling
+
+-   Automatic weekly folder creation
+
+-   GitHub auto-publish
+
+-   Interactive plotly version
+
+-   Adding narrative commentary blocks
+
+**You are officially moving into:**
+
+> Data scientist who communicates.
+
+If you want, next I can:
+
+-   Build you a “Graduate-level Tidy Tuesday workflow"
+
+-   ~~Show you how to design plots like The Economist~~
+
+-   Help you create a personal ggplot theme you reuse every week

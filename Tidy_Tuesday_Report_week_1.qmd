@@ -1,0 +1,177 @@
+---
+title: "Tidy Tuesday Analysis"
+author: "Brittnany Graham"
+format: 
+  html:
+    theme: cosmo
+    toc: true
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(scales)
+library(patchwork)
+```
+
+```{r}
+
+palmtrees <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-03-18/palmtrees.csv')
+
+# cleaning names
+
+palm <- palmtrees %>%
+  clean_names()
+
+view(palm)
+```
+
+## Basic Graph
+
+```{r}
+
+
+## Analysis Section
+## Pareto Analysis of Genera
+
+pareto_data <- palm %>%
+  count(acc_genus) %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 20) %>%
+  mutate(
+    cumulative = cumsum(n),
+    cumulative_percent = cumulative / sum(n),
+    acc_genus = fct_reorder(acc_genus, n)
+  )
+
+ggplot(pareto_data, aes(x = acc_genus)) +
+  geom_col(aes(y = n), fill = "#2C7FB8") +
+  geom_line(aes(y = cumulative_percent * max(n), group = 1),
+            color = "darkred") +
+  scale_y_continuous(
+    name = "Count",
+    sec.axis = sec_axis(~ . / max(pareto_data$n),
+                        name = "Cumulative %",
+                        labels = percent)
+  ) +
+  coord_flip() +
+  theme_minimal()
+```
+
+## "The Economist" Style Graph
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(forcats)
+
+economist <- palm %>%
+  count(acc_genus) %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 15) %>%
+  mutate(acc_genus = fct_reorder(acc_genus, n))
+
+```
+
+### Building a Minimal Base Plot
+
+```{r}
+ggplot(economist, aes(x = n, y = acc_genus)) +
+  geom_col(fill = "grey80")
+```
+
+This is plain and quiet.
+
+### Add Highlight (Top Genus in Red)
+
+```{r}
+
+economist <- economist %>%
+  mutate(highlight = ifelse(row_number() == n(), "highlight", "normal"))
+
+# Graphing it
+
+ggplot(economist, aes(x = n, y = acc_genus, fill = highlight)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+    "normal" = "grey80",
+    "highlight" = "#C0392B"
+  )) +
+  guides(fill = "none")
+```
+
+Now we have hierarchy.
+
+### Economist Theme Styling
+
+```{r}
+economist_plot <- ggplot(economist, aes(x = n, y = acc_genus, fill = highlight)) +
+  geom_col(width = 0.8) +
+  
+  scale_fill_manual(values = c(
+    "normal" = "grey80",
+    "highlight" = "#C0392B"
+  )) +
+  
+  labs(
+    title = "A Small Number of Genera Dominate Observations",
+    subtitle = "Top 15 genera account for most detections",
+    x = "Number of Observations",
+    y = NULL
+  ) +
+  
+  theme_minimal(base_size = 13) +
+  
+  theme(
+    legend.position = "none",
+    
+    plot.title = element_text(
+      face = "bold",
+      size = 16,
+      margin = margin(b = 10)
+    ),
+    
+    plot.subtitle = element_text(
+      color = "grey40",
+      margin = margin(b = 15)
+    ),
+    
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    
+    axis.text = element_text(color = "grey20"),
+    axis.title.x = element_text(margin = margin(t = 10))
+  ) +
+  annotate("rect", # adding the economist red headline
+         xmin = -Inf,
+         xmax = Inf,
+         ymin = Inf,
+         ymax = Inf,
+         fill = "#C0392B")
+```
+
+### Creating the header then adding it to the above plot
+
+```{r}
+header <- ggplot() +
+  
+  # Create a rectangle that fills entire panel
+  geom_rect(
+    aes(xmin = 0, xmax = 1, ymin = 0, ymax = 1),
+    fill = "#C0392B"
+  ) +
+  
+  # Remove all axes and background elements
+  theme_void()
+```
+
+```{r}
+header / economist_plot + 
+  plot_layout(heights = c(0.06, 1))
+```

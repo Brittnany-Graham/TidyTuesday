@@ -1,0 +1,238 @@
+---
+title: "Science Foundation Ireland Grant Commitments"
+author: "Brittnany Graham"
+format: html
+editor: visual
+execute:
+  echo: false
+---
+
+## Install Packages and upload data
+
+```{r}
+# Using R
+# Option 1: tidytuesdayR R package 
+# install.packages("tidytuesdayR")
+# install.packages("forcats")
+# install.packages("scales")
+library(tidytuesdayR)
+library(tidyverse)
+library(forcats)
+library(scales)
+
+
+# Using R
+# Option 1: tidytuesdayR R package 
+## install.packages("tidytuesdayR")
+
+tuesdata <- tidytuesdayR::tt_load('2025-03-18')
+palmtrees <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-03-18/palmtrees.csv')
+
+```
+
+## Exploring the data
+
+```{r}
+
+palm <- palmtrees
+
+```
+
+# How We Can Structure This Going Forward
+
+For Tidy Tuesday, we can use this structure:
+
+1.  🔎 Explore data (glimpse, summary)
+
+2.  🧹 Clean data (mutate, filter)
+
+3.  📊 Summarize data
+
+4.  🎨 Visualize
+
+5.  ✨ Refine aesthetics
+
+6.  📄 Render report in Quarto
+
+## What Would Impress in a Tidy Tuesday Submission?
+
+::: callout-note
+## Publication plots rarely show 100+ categories
+:::
+
+So just show the top 15-25
+
+```{r}
+# Step 1: Count how many times each Genus appears
+
+top_genera <- palm %>%
+  count(acc_genus) %>%
+    # count() groups by Genus and calculates the number of rows for each.
+  # It automatically creates a new column called 'n' that stores counts.
+  
+  mutate(percent = n / sum(n)) %>%
+   # Create a new column called 'percent'
+  # n / sum(n) calculates the proportion each genus represents
+  # relative to the total number of observations
+  
+  arrange(desc(n)) %>%
+  # Sort from largest count to smallest
+  
+  slice_head(n = 20) %>%
+  # Keep only the top 20 most abundant genera
+  
+  mutate(acc_genus = fct_reorder(acc_genus, n))
+# Convert Genus to a factor and reorder levels
+  # This ensures bars are ordered by count in the plot
+
+```
+
+```{r}
+# Step 2: Create the plot
+
+plot <- ggplot(top_genera, aes(x = n, y = acc_genus)) +
+  # ggplot() initializes the plot
+  # aes() defines aesthetics:
+  #   x = counts
+  #   y = Genus names
+  
+  geom_col(fill = "#1B4F72", width = 0.8) +
+  # geom_col() creates bars using precomputed counts (n)
+  # fill sets the bar color
+  # width controls bar thickness
+  
+  geom_text(
+    aes(label = percent(percent, accuracy = 0.1)),
+    # label displays formatted percent values on each bar
+    # percent() from scales package converts decimals to percentages
+    # accuracy = 0.1 rounds to one decimal place
+    
+    hjust = -0.1, 
+    # hjust controls horizontal positioning of text
+    # negative value pushes text slightly outside the bar
+    
+    size = 3.5
+    # controls text size
+  ) +
+  
+  labs(
+    title = "Top 20 Genera by Relative Abundance",
+    subtitle = "Percent of total observations",
+    x = "Count",
+    y = NULL
+    # y = NULL removes redundant axis label
+  ) +
+  
+  scale_x_continuous(
+    expand = expansion(mult = c(0, 0.1))
+    # Adds 10% extra space to the right of bars
+    # This prevents percent labels from being cut off
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  # Clean, professional theme
+  # base_size controls overall text size
+  
+  theme(
+    plot.title = element_text(face = "bold"),
+    # Makes title bold
+    
+    panel.grid.major.y = element_blank(),
+    # Removes horizontal gridlines (reduces clutter)
+    
+    panel.grid.minor = element_blank()
+    # Removes minor gridlines
+  )
+
+plot
+```
+
+## Creating a Pareto Chart
+
+Answers the question:
+
+**"How much of the total is explained by the top categories?"**
+
+```{r}
+pareto_data <- palm %>%
+  
+  count(acc_genus) %>%  
+  # Count number of observations per genus
+  
+  arrange(desc(n)) %>%  
+  # Sort from largest to smallest
+  
+  slice_head(n = 20) %>%
+  #keeps only the top 20
+  
+  mutate(
+    cumulative_count = cumsum(n),
+    # cumsum() creates a running total down the column
+    
+    cumulative_percent = cumulative_count / sum(n),
+    # Divide running total by grand total to get cumulative proportion
+    
+    acc_genus = fct_reorder(acc_genus, n)
+    # Reorder factor levels by count (important for plotting order)
+  )
+```
+
+### Building the Pareto Plot
+
+```{r}
+ggplot(pareto_data, aes(x = acc_genus)) +
+  
+  # Bar layer (counts) ----------------------------------------------------
+  
+  geom_col(aes(y = n),
+           fill = "#2C7FB8",
+           width = 0.8) +
+  
+  
+  # Line layer (cumulative %) --------------------------------------------
+  
+  geom_line(aes(y = cumulative_percent * max(n), group = 1),
+            color = "darkred",
+            size = 1) +
+  
+  # Points on the cumulative line ----------------------------------------
+  
+  geom_point(aes(y = cumulative_percent * max(n)),
+             color = "darkred",
+             size = 2) +
+  
+  
+  # Secondary axis --------------------------------------------------------
+  
+  scale_y_continuous(
+    
+    name = "Count",
+    
+    sec.axis = sec_axis(
+      ~ . / max(pareto_data$n),
+      # This rescales the primary axis back to proportion scale
+      name = "Cumulative Percentage",
+      labels = percent
+    )
+  ) +
+  
+  
+  # Flip coordinates for readability -------------------------------------
+  
+  coord_flip() +
+  
+  
+  labs(
+    title = "Pareto Chart of Genera Abundance",
+    subtitle = "Bars show counts; line shows cumulative percentage",
+    x = NULL
+  ) +
+  
+  
+  theme_minimal(base_size = 14) +
+  
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.major.y = element_blank()
+  )
+```
