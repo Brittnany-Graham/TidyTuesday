@@ -1,0 +1,83 @@
+---
+title: "Tidy Tuesday Week 2"
+author: "Brittnany Graham"
+format: html
+editor: visual
+---
+
+> As a publicly-traded company, Amazon releases an annual report every year (with a December 31st year end).
+> An annual report is essentially a summary of the company's performance over the past year.
+> It includes details on how well the company did financially, what goals were achieved, and what challenges it faced.
+
+```{r}
+library(tidyverse)
+library(plotly)
+
+report_words_clean <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-03-25/report_words_clean.csv')
+
+```
+
+## Questions to consider:
+
+-   How have the words used change over time?
+
+-   Are there meaningful changes in sentiment from year to year?
+
+-   Which words are likely to appear together in the same annual report?
+
+```{r}
+midnight_narrative <- c(
+  midnight = "#1D3557",
+  coral = "#E76F51",
+  blush = "#F4A261",
+  rosewood = "#B56576",
+  sage = "#6C9A8B",
+  linen = "#F1FAEE",
+  ink = "#222222"
+)
+```
+
+## How have the words used changed over time?
+
+```{r}
+words <- report_words_clean
+
+head(words)
+str(words)
+view(words)
+```
+
+```{r}
+## grouping total words and their counts for the year
+
+word_counts <- words %>%
+  group_by(year, word) %>% # group the data by year and word
+  summarize(count = n(), .groups = "drop") # counts the number of rows in each group, then ungroups the data frame
+
+
+# pivot to wide format
+
+heatmap_data <- word_counts %>%
+  pivot_wider(names_from = year, values_from = count, values_fill = 0)
+
+# convert to matrix for Plotly
+
+heatmap_matrix <- as.matrix(heatmap_data[ ,-1])
+rownames(heatmap_matrix) <- heatmap_data$word
+
+## Creating interactive heatmap
+
+plot_ly(
+  x = colnames(heatmap_matrix),
+  y = rownames(heatmap_matrix),
+  z = heatmap_matrix,
+  type = "heatmap",
+  colors = c("orange", "red")
+ ) %>%
+  layout(
+    title = "Word Usage Over Years",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Word")
+  )
+
+```
