@@ -1,0 +1,141 @@
+---
+title: "A Small Number of Genera Dominate Observations"
+subtitle: "Tidy Tuesday Analysis"
+author: "Brittnany Graham"
+format:
+  html:
+    theme: cosmo
+    css: midnight-style.css
+    toc: false
+    code-fold: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+
+# ==========================================================
+# Load Libraries
+# ==========================================================
+
+library(tidyverse)
+library(scales)
+library(forcats)
+
+# ==========================================================
+# Midnight Narrative Palette
+# ==========================================================
+
+midnight_narrative <- c(
+  midnight = "#1D3557",
+  coral = "#E76F51",
+  blush = "#F4A261",
+  rosewood = "#B56576",
+  sage = "#6C9A8B",
+  linen = "#F1FAEE",
+  ink = "#222222"
+)
+
+# ==========================================================
+# Custom Theme Function
+# ==========================================================
+
+theme_midnight_narrative <- function() {
+  theme_minimal(base_size = 13) +
+    theme(
+      plot.background = element_rect(fill = midnight_narrative["linen"], color = NA),
+      panel.background = element_rect(fill = midnight_narrative["linen"], color = NA),
+      plot.title = element_text(
+        face = "bold",
+        size = 18,
+        color = midnight_narrative["midnight"],
+        margin = margin(b = 8)
+      ),
+      plot.subtitle = element_text(
+        color = midnight_narrative["ink"],
+        margin = margin(b = 15)
+      ),
+      axis.text = element_text(color = midnight_narrative["ink"]),
+      axis.title = element_text(color = midnight_narrative["ink"]),
+      panel.grid.major.y = element_line(color = "grey85"),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      legend.position = "none"
+    )
+}
+
+```
+
+## Data Section
+
+```{r}
+
+palmtrees <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-03-18/palmtrees.csv')
+
+palm <- palmtrees
+
+```
+
+## Analysis
+
+```{r}
+
+pareto_data <- palm %>%
+  count(acc_genus) %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 15) %>%
+  mutate(
+    cumulative = cumsum(n),
+    cumulative_percent = cumulative / sum(n),
+    acc_genus = fct_reorder(acc_genus, n)
+  )
+
+ggplot(pareto_data, aes(x = acc_genus)) +
+  
+  geom_col(aes(y = n),
+           fill = midnight_narrative["linen"],
+           color = midnight_narrative["midnight"],
+           width = 0.8) +
+  
+  geom_col(
+    data = pareto_data[which.max(pareto_data$n), ],
+    aes(y = n),
+    fill = midnight_narrative["coral"],
+    width = 0.8
+  ) +
+  
+  geom_line(aes(y = cumulative_percent * max(n), group = 1),
+            color = midnight_narrative["sage"],
+            linewidth = 1.2) +
+  
+  geom_point(aes(y = cumulative_percent * max(n)),
+             color = midnight_narrative["sage"],
+             size = 2.5) +
+  
+  scale_y_continuous(
+    name = "Count",
+    sec.axis = sec_axis(
+      ~ . / max(pareto_data$n),
+      name = "Cumulative %",
+      labels = percent
+    )
+  ) +
+  
+  coord_flip() +
+  
+  labs(
+    title = "A Small Number of Genera Dominate Observations",
+    subtitle = "Cumulative percentage reveals concentration of detections",
+    x = NULL
+  ) +
+   theme_midnight_narrative()
+```
+
+------------------------------------------------------------------------
+
+::: {style="text-align: center; font-size: 0.9em; color: #222222;"}
+Tidy Tuesday \| Brittnany Graham \| 2026\
+Built with R & Quarto
+:::
