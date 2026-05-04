@@ -322,11 +322,152 @@ library(tigris)
 ```{r}
 options(tigris_use_cache = TRUE)
 
-tn_counties <- counties(state = "TN", cb = TRUE, class = "sf")
+tn_counties_sf <- counties(state = "TN", cb = TRUE, class = "sf")
 ```
 
 ## Preparing the drought data at a county scale
 
 ```{r}
 names(drought_clean)
+```
+
+```{r}
+
+drought_tn_county <- read.csv("dm_export_20010101_20211231.csv")
+
+```
+
+```{r}
+drought_clean <- drought %>%
+  clean_names() %>%
+  mutate(
+    map_date = ymd(map_date) #converting the dates - be sure to pay attention to the structure of the date
+  )
+glimpse(drought_clean)
+
+
+  ## Always look and see what the dataset looks like before you start running the code so this way you can accurately determine what's happening and reduce the amount of headaches
+
+## Clean and Format drought levels
+
+drought_clean <- drought_clean %>%
+  mutate(
+    drought_lvl = factor(
+      drought_lvl,
+      levels = c("None", "D0", "D1", "D2", "D3", "D4"),
+      labels = c(
+        "No Drought",
+        "Abnormally Dry",
+        "Moderate Drought",
+        "Severe Drought",
+        "Extreme Drought",
+        "Exceptional Drought"
+      )
+    )
+  )
+
+glimpse(drought_clean)
+```
+
+```{r}
+
+names(counties_clean)
+
+
+counties_clean <- drought_tn_county %>%
+  clean_names() %>%
+  mutate(
+    map_date = ymd(map_date) #converting the dates - be sure to pay attention to the structure of the date
+  )
+
+## This is where you have to pivot the drought categories from wide to long
+
+counties_long <- counties_clean %>%
+  pivot_longer(
+    cols = c(d0, d1, d2, d3, d4, none),
+    names_to = 'drought_lvl',
+    values_to = "percent_area"
+  )
+
+## Cleaning and formatting drought levels
+
+counties_long <- counties_long %>%
+  mutate(
+    drought_lvl = factor(
+      drought_lvl,
+      levels = c("none", "d0", "d1", "d2", "d3", "d4"),
+      labels = c(
+        "No Drought",
+        "Abnormally Dry",
+        "Moderate Drought",
+        "Severe Drought",
+        "Extreme Drought",
+        "Exceptional Drought"
+      )
+    )
+  )
+glimpse(counties_long)  
+
+# Total drought over time in tennessee
+
+county_summary <- counties_long %>%
+  group_by(map_date, drought_lvl) %>%
+  summarise(percent_area = sum(percent_area, na.rm = TRUE),
+            .groups = "drop")
+```
+
+## Static map
+
+Will make an animated one later
+
+```{r}
+
+date_of_interest <- as.Date("2021-07-13")
+
+tn_drought_day <- counties_long %>%
+  filter(map_date == date_of_interest)
+
+## Changing all the names to uppercase
+
+tn_drought_day <- tn_drought_day %>%
+  mutate(county = toupper(county))
+
+tn_counties_sf <- tn_counties_sf %>%
+  mutate(NAME = toupper(NAME))
+
+## Needed to drop the "County" which was in the TN_drough_day, and that's why there was a weird mismatch. 
+
+
+tn_drought_day <- tn_drought_day %>%
+  mutate(county = str_remove(county, "\\s+COUNTY$"))
+
+tn_map <- tn_counties_sf %>%
+  left_join(tn_drought_day, by = c("NAME" = "county"))
+
+view(tn_map)
+```
+
+### Map
+
+```{r}
+
+
+ggplot(tn_map) +
+  geom_sf(aes(fill = drought_lvl), color = "black", linewidth = 0.1) +
+  scale_fill_manual(values = drought_colors, na.value = "grey85") +
+  labs(
+    title = "Tennessee Drought Conditions",
+    subtitle = as.character(date_of_interest),
+    fill = "Drought Level"
+  ) +
+  theme_minimal()
+
+tn_map %>%
+  st_drop_geometry() %>%
+  count(NAME, drought_lvl)
+```
+
+```{r}
+
+
 ```
