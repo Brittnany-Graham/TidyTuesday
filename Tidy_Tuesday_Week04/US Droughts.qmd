@@ -128,6 +128,183 @@ ggplot(tn_summary, aes(x = map_date, y = area_pct, fill = drought_lvl)) +
   theme_minimal()
 ```
 
-## Using population percentage 
+## Land versus population impact 
 
-I want to look at population level effects of drought
+I want to look at population level effects of drought in Tennessee.
+Since Tennessee's land uses about 41% of it's land for agriculture, that translates to approximately 10.8 million acres of agricultural land.
+Various crops and livestock contribute significantly to the state's economy.
+Drought inevitably impacts the farmers and surrounding population relying on farmers leading to overall lack of food security in the state.
+
+```{r}
+
+# land versus population impact
+tn_compare <- tn_drought %>%
+  group_by(map_date, drought_lvl) %>%
+  summarise(
+    area_pct = sum(area_pct, na.rm = TRUE),
+    pop_pct = sum(pop_pct, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+## pivoting for comparison plotting
+
+tn_compare_long <- tn_compare %>%
+  pivot_longer(
+    cols = c(area_pct, pop_pct),
+    names_to = "metric",
+    values_to = "percent"
+  )
+
+view(tn_compare_long)
+```
+
+### Plotting Area vs. Population
+
+```{r}
+
+ggplot(tn_compare_long, aes(x = map_date, y = percent, fill = drought_lvl)) + 
+  geom_area() +
+  facet_wrap(~ metric, ncol = 1) +
+  scale_fill_manual(values = drought_colors) +
+  labs(
+    title = "Drought Impact: Land vs. Population in Tennessee",
+    y = "Percent",
+    x = "Date",
+    fill = "Drought Level"
+  ) +
+  theme_minimal()
+
+```
+
+## Showcasing the Tennessee Map 
+
+```{r}
+
+# install.packages("rnaturalearth")
+# install.packages("rnaturalearthdata")
+
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(gganimate)
+```
+
+## Get the US State Boundaries
+
+```{r}
+us_states <- ne_states(country = "United States of America", returnclass = "sf")
+
+glimpse(us_states)
+
+## will be using "postal" because it matches the "state_abb" from the drought dataset
+```
+
+## Prepare drought data for mapping
+
+Picking a single date first (maps are easiest when static):
+
+```{r}
+
+drough_map <- drought_clean %>%
+  filter(map_date == as.Date("2021-07-13")) %>%
+  group_by(state_abb, drought_lvl) %>%
+  summarise(area_pct = sum(area_pct, na.rm = TRUE),
+            .groups = "drop")
+```
+
+## Join Spatial & Drought Area
+
+```{r}
+drought_state <- drought_clean %>%
+  filter(map_date == as.Date("2021-07-13")) %>%
+  group_by(state_abb, drought_lvl) %>%
+  summarise(area_pct = sum(area_pct), .groups = "drop") %>%
+  group_by(state_abb) %>%
+  slice_max(area_pct, n = 1) %>%
+  ungroup()
+```
+
+Now join to geometry
+
+```{r}
+us_drought_sf <- us_states %>%
+  left_join(drought_state, by = c("postal" = "state_abb"))
+
+## Zoomed in on Tennessee
+
+tn_map <- us_drought_sf %>%
+  filter(postal == "TN")
+
+ggplot(tn_map) +
+  geom_sf(aes(fill = drought_lvl)) +
+  scale_fill_manual(values = drought_colors, na.value = "grey80") +
+  labs(
+    title = "Tennessee Drought Conditions",
+    fill = "Drought Level"
+  ) +
+  theme_minimal()
+```
+
+## Creating a animated map over time
+
+This is for better storytelling
+
+```{r}
+tn_sf <- us_states %>%
+  filter(postal == "TN")
+```
+
+**Prepare the Tennessee drought time series**
+
+```{r}
+
+tn_drought_ts <- drought_clean %>%
+  filter(state_abb == "TN") %>%
+  group_by(map_date, drought_lvl) %>%
+  summarise(area_pct, sum(area_pct, na.rm = TRUE), .groups = "drop")
+```
+
+**Join TN geometry to each time step**
+
+```{r}
+tn_anim_sf <- tn_sf %>%
+  slice(rep(1:n(), each = n_distinct(tn_drought_ts$map_date))) %>%
+  mutate(map_date = rep(sort(unique(tn_drought_ts$map_date)),
+                        each = nrow(tn_sf)))
+
+## now join drought info:
+
+tn_anim_sf <- tn_anim_sf %>%
+  left_join(tn_drought_ts, by = 'map_date')
+```
+
+### Building the base plot
+
+```{r}
+p <- ggplot(tn_anim_sf) +
+  geom_sf(aes(fill = drought_lvl), color = "white", linewidth = 0.5) +
+  scale_fill_manual(values = drought_colors, na.value = "grey80") +
+  labs(
+    title = "Tennessee Drought Conditions over 10 Years",
+    subtitle = "Date: {frame_time}",
+    fill = "Drought Level"
+  ) +
+  theme_minimal()
+
+## animate over time
+
+anim <- p +
+  transition_time(map_date) +
+  ease_aes("linear")
+
+## rendering the animation
+
+animate(anim,
+        fps = 10,
+        width = 700, 
+        height = 500)
+
+## saving the animation
+
+anim_save("tn_drought_animation.gif", anim)
+```
