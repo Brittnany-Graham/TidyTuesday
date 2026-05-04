@@ -1,0 +1,69 @@
+---
+title: "Who Finds A Home? An Exploration of Long Beach Animal Shelter Outcomes"
+author: "Brittnany Graha"
+format: 
+  html:
+    theme: cosmo
+    css: midnight-style.css
+    code-fold: true
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+editor: visual
+---
+
+> This week we are exploring the Long Beach Animal Shelter Data!
+>
+> Dataset comprises of the intake and outcome record from Long Beach Animal Shelter
+
+## Questions to consider:
+
+- How has the number of pet adoptions changed over the years?
+
+- Which type of pets are adopted most often?
+
+```{r}
+midnight_blue <- "#1D3557"
+warm_gold     <- "#E9C46A"
+coral         <- "#E76F51"
+soft_sand     <- "#F4F1DE"
+charcoal      <- "#2A2A2A"
+```
+
+```{r}
+
+## Loading the libraries 
+
+library(tidyverse)
+library(janitor)
+library(scales)
+library(lubridate)
+
+# Loading the data set
+
+longbeach <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-03-04/longbeach.csv')
+
+## cleaning the data
+
+longbeach <- longbeach %>%
+  clean_names() # removes spaces, converts to lowercase, and makes columns consistent
+
+
+
+```
+
+```{r}
+## exploring the data 
+
+glimpse(longbeach)
+
+summary(longbeach)
+
+## count animal types
+
+longbeach %>%
+  count(animal_type, sort = TRUE) # returns a table with what you want to count and the total count
+```

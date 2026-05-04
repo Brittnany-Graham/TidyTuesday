@@ -20,17 +20,17 @@ That's it, don't overcomplicate.
 
 Next-level upgrades:
 
--   Parameterized reports (choose week automatically)
+- Parameterized reports (choose week automatically)
 
--   Custom CSS styling
+- Custom CSS styling
 
--   Automatic weekly folder creation
+- Automatic weekly folder creation
 
--   GitHub auto-publish
+- GitHub auto-publish
 
--   Interactive plotly version
+- Interactive plotly version
 
--   Adding narrative commentary blocks
+- Adding narrative commentary blocks
 
 **You are officially moving into:**
 
@@ -38,11 +38,11 @@ Next-level upgrades:
 
 If you want, next I can:
 
--   Build you a “Graduate-level Tidy Tuesday workflow"
+- Build you a “Graduate-level Tidy Tuesday workflow"
 
--   ~~Show you how to design plots like The Economist~~
+- ~~Show you how to design plots like The Economist~~
 
--   Help you create a personal ggplot theme you reuse every week
+- Help you create a personal ggplot theme you reuse every week
 
 ## Midnight Narrative - WINNER
 
@@ -68,25 +68,25 @@ midnight_narrative <- c(
 
 #### Foundation (70% of design)
 
--   Background –\> linen
+- Background –\> linen
 
--   Text –\> ink
+- Text –\> ink
 
--   Titles –\> midnight
+- Titles –\> midnight
 
--   Most bars –\> neutral/linen or soft grey
+- Most bars –\> neutral/linen or soft grey
 
 #### Highlight (20%)
 
--   Primary highlight –\> coral
+- Primary highlight –\> coral
 
--   Secondary comparison –\> sage
+- Secondary comparison –\> sage
 
 #### Emphasis (10%)
 
--   Key insight –\> blush
+- Key insight –\> blush
 
--   Annotation accents –\> rosewood
+- Annotation accents –\> rosewood
 
 Never use all accent colors at once
 

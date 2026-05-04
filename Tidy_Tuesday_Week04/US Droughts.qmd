@@ -1,0 +1,133 @@
+---
+title: "US Droughts"
+author: "Brittnany Graham"
+format: 
+  html:
+    theme: cosmo
+    css: midnight-style.css
+    code-fold: true
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+editor: visual
+---
+
+## Background
+
+This dataset was covered by the NY Times and CNN.
+
+The dataset ranges from 2001 to 2021.
+
+```{r}
+
+## Installing tidytuesdayR package and downloading the data
+
+# install.packages("tidytuesdayR")
+library(tidytuesdayR)
+library(tidyverse)
+library(janitor)
+
+drought <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-07-20/drought.csv')
+
+```
+
+## Cleaning Data
+
+```{r}
+## getting a feel for the data
+glimpse(drought)
+
+## Clean column names and fix the dates
+
+drought_clean <- drought %>%
+  clean_names() %>%
+  mutate(
+    map_date = ymd(map_date) #converting the dates - be sure to pay attention to the structure of the date
+  )
+glimpse(drought_clean)
+
+
+  ## Always look and see what the dataset looks like before you start running the code so this way you can accurately determine what's happening and reduce the amount of headaches
+
+## Clean and Format drought levels
+
+drought_clean <- drought_clean %>%
+  mutate(
+    drought_lvl = factor(
+      drought_lvl,
+      levels = c("None", "D0", "D1", "D2", "D3", "D4"),
+      labels = c(
+        "No Drought",
+        "Abnormally Dry",
+        "Moderate Drought",
+        "Severe Drought",
+        "Extreme Drought",
+        "Exceptional Drought"
+      )
+    )
+  )
+
+glimpse(drought_clean)
+```
+
+## 📍Filter to Tennessee and summarize
+
+Because this is where I live.
+
+```{r}
+
+# Filtering down to Tennessee
+tn_drought <- drought_clean %>%
+  filter(state_abb == "TN")
+
+## Summarizing
+
+tn_summary <- tn_drought %>%
+  group_by(map_date, drought_lvl) %>%
+  summarise(
+    area_pct = sum(area_pct, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+### Plot
+
+```{r}
+
+## two color palettes for drought
+drought_colors <- c(
+  "No Drought" = "#FFFFFF",
+  "Abnormally Dry" = "#FCD37F",
+  "Moderate Drought" = "#FFAA00",
+  "Severe Drought" = "#E60000",
+  "Extreme Drought" = "#730000",
+  "Exceptional Drought" = "#4B0082"
+)
+
+midnight_drought <- c(
+  "No Drought" = "#0B132B",
+  "Abnormally Dry" = "#1C2541",
+  "Moderate Drought" = "#3A506B",
+  "Severe Drought" = "#5BC0BE",
+  "Extreme Drought" = "#C3423F",
+  "Exceptional Drought" = "#6A040F"
+)
+
+ggplot(tn_summary, aes(x = map_date, y = area_pct, fill = drought_lvl)) +
+  geom_area() +
+  labs(
+    title = "Drought Conditions in Tennessee Over Time",
+    x = "Date",
+    y = "Percent Area",
+    fill = "Drought Level"
+  ) +
+  scale_fill_manual(values = drought_colors) +
+  theme_minimal()
+```
+
+## Using population percentage 
+
+I want to look at population level effects of drought

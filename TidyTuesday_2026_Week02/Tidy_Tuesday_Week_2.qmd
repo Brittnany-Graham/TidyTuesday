@@ -1,7 +1,16 @@
 ---
 title: "Tidy Tuesday Week 2"
 author: "Brittnany Graham"
-format: html
+format: 
+  html:
+    theme: cosmo
+    css: midnight-theme.css
+    toc: false
+    code-fold: true
+execute:
+  echo: false
+  warning: false
+  message: false    
 editor: visual
 ---
 
@@ -55,29 +64,34 @@ word_counts <- words %>%
   summarize(count = n(), .groups = "drop") # counts the number of rows in each group, then ungroups the data frame
 
 
-# pivot to wide format
+top_words <- word_counts %>%
+  group_by(year) %>%
+  slice_max(order_by = count, n = 5) %>% # top 5 words per year
+  ungroup()
 
-heatmap_data <- word_counts %>%
-  pivot_wider(names_from = year, values_from = count, values_fill = 0)
+## capitalizing the words
+top_words <- top_words %>%
+  mutate(word = str_to_title(word))
 
-# convert to matrix for Plotly
+### Creating the Stacked Bar Chart
 
-heatmap_matrix <- as.matrix(heatmap_data[ ,-1])
-rownames(heatmap_matrix) <- heatmap_data$word
+ggplot(top_words, aes(x = factor(year), y = count, fill = word)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Top Words Used Each Year",
+    x = "Year",
+    y = "Word Count",
+    fill = "Word"
+  ) +
+  theme_midnight_narrative()
 
-## Creating interactive heatmap
-
-plot_ly(
-  x = colnames(heatmap_matrix),
-  y = rownames(heatmap_matrix),
-  z = heatmap_matrix,
-  type = "heatmap",
-  colors = c("orange", "red")
- ) %>%
-  layout(
-    title = "Word Usage Over Years",
-    xaxis = list(title = "Year"),
-    yaxis = list(title = "Word")
-  )
 
 ```
+
+It's clear the company did pretty well at becoming a multi-billion dollar company in its later years.
+
+::: {style="text-align: center; font-size: 0.9em; color: #222222;"}
+Tidy Tuesday \| Brittnany Graham \| 2026
+
+Made with RStudio & Quarto
+:::
