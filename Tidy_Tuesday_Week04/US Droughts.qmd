@@ -308,3 +308,25 @@ animate(anim,
 
 anim_save("tn_drought_animation.gif", anim)
 ```
+
+# Tennessee at the county level
+
+I want to start looking at drought conditions at the county level because just one entire state being the same color over time is not...
+right
+
+```{r}
+# install.packages("tigris")
+library(tigris)
+```
+
+```{r}
+options(tigris_use_cache = TRUE)
+
+tn_counties <- counties(state = "TN", cb = TRUE, class = "sf")
+```
+
+## Preparing the drought data at a county scale
+
+```{r}
+names(drought_clean)
+```
