@@ -128,7 +128,7 @@ ggplot(tn_summary, aes(x = map_date, y = area_pct, fill = drought_lvl)) +
   theme_minimal()
 ```
 
-## Land versus population impact 
+## Land versus population impact
 
 I want to look at population level effects of drought in Tennessee.
 Since Tennessee's land uses about 41% of it's land for agriculture, that translates to approximately 10.8 million acres of agricultural land.
@@ -176,7 +176,7 @@ ggplot(tn_compare_long, aes(x = map_date, y = percent, fill = drought_lvl)) +
 
 ```
 
-## Showcasing the Tennessee Map 
+## Showcasing the Tennessee Map
 
 ```{r}
 
