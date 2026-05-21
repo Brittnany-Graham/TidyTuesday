@@ -1,20 +1,23 @@
-body::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 14px;
-  background-color: #1D3557;
-  margin-bottom: 25px;
-}
-
-h1.title {
-  color: #1D3557;
-  font-weight: 700;
-}
-
-.midnight-footer {
-  text-align: center;
-  font-size: 0.9em;
+body{
+  background-color: #F1FAEE;
   color: #222222;
-  margin-top: 50px;
+  font-family: "Avenir Next", Sans-Serif;
+}
+
+h1, h2, h3 {
+  color: #1D3557;
+}
+
+a {
+  color: #B56576;
+}
+
+.quarto-title-banner{
+  background: linear-gradient(
+  120deg,
+  #0B132B,
+  #1C2541,
+  #3A506B,
+  #6C9A8B
+  );
 }

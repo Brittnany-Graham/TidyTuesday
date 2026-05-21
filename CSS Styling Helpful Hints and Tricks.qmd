@@ -1,0 +1,77 @@
+---
+title: "CSS Style Guide and Helpful Hints"
+author: "Brittnany Graham"
+format: html
+editor: visual
+---
+
+## CSS Styling
+
+CSS can feel mysterious at first because it controls the *appearance layer* of the webpage rather than the data itself.
+But once you understand the structure, it becomes much easier to intentionally build the "Midnight Narrative" aesthetic.
+
+```{selector {}
+  property: value;
+}
+```
+
+Meaning:
+
+"Select this part of the webpage and style it this way."
+
+## Section 1 - Styling the entire webpage
+
+`Body` refers to the entire visible webpage.
+
+So anything inside this block affects:
+
+- overall background
+
+- default text
+
+- overall vibe/theme
+
+`background-color:`
+
+This sets the webpage background color
+
+`color` sets the default text color
+
+`font-family` sets the font used across the website.
+
+- First CSS will try any font, such as "Avenir Next"
+- if it's unavailable ➝ sans-serif
+
+## Section2 - Styling Headers
+
+`h1, h2, h3` these are the webpage heading levels
+
+H1 = main title
+
+H2 = Section title
+
+H3 = subsection
+
+- you can also control the colors of the headers as well
+
+## Section 3 - Styling Links
+
+`a` = anchor tag = hyperlinks
+
+you can control the color here as well, and usually best for an accent or emphasis color
+
+## Section 4 - Quarto title banner
+
+`.quarto-title-banner` selects Quarto's built-in title banner area
+
+This is the section containing:
+
+- title
+
+- author
+
+- subtitle
+
+`background: linear-gradient`
+
+creates a gradient instead of a solid color

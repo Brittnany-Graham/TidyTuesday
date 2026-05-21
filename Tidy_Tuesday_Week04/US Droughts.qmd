@@ -29,6 +29,8 @@ The dataset ranges from 2001 to 2021.
 library(tidytuesdayR)
 library(tidyverse)
 library(janitor)
+library(sf)
+library(tigris)
 
 drought <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-07-20/drought.csv')
 
@@ -189,126 +191,6 @@ library(rnaturalearthdata)
 library(gganimate)
 ```
 
-## Get the US State Boundaries
-
-```{r}
-us_states <- ne_states(country = "United States of America", returnclass = "sf")
-
-glimpse(us_states)
-
-## will be using "postal" because it matches the "state_abb" from the drought dataset
-```
-
-## Prepare drought data for mapping
-
-Picking a single date first (maps are easiest when static):
-
-```{r}
-
-drough_map <- drought_clean %>%
-  filter(map_date == as.Date("2021-07-13")) %>%
-  group_by(state_abb, drought_lvl) %>%
-  summarise(area_pct = sum(area_pct, na.rm = TRUE),
-            .groups = "drop")
-```
-
-## Join Spatial & Drought Area
-
-```{r}
-drought_state <- drought_clean %>%
-  filter(map_date == as.Date("2021-07-13")) %>%
-  group_by(state_abb, drought_lvl) %>%
-  summarise(area_pct = sum(area_pct), .groups = "drop") %>%
-  group_by(state_abb) %>%
-  slice_max(area_pct, n = 1) %>%
-  ungroup()
-```
-
-Now join to geometry
-
-```{r}
-us_drought_sf <- us_states %>%
-  left_join(drought_state, by = c("postal" = "state_abb"))
-
-## Zoomed in on Tennessee
-
-tn_map <- us_drought_sf %>%
-  filter(postal == "TN")
-
-ggplot(tn_map) +
-  geom_sf(aes(fill = drought_lvl)) +
-  scale_fill_manual(values = drought_colors, na.value = "grey80") +
-  labs(
-    title = "Tennessee Drought Conditions",
-    fill = "Drought Level"
-  ) +
-  theme_minimal()
-```
-
-## Creating a animated map over time
-
-This is for better storytelling
-
-```{r}
-tn_sf <- us_states %>%
-  filter(postal == "TN")
-```
-
-**Prepare the Tennessee drought time series**
-
-```{r}
-
-tn_drought_ts <- drought_clean %>%
-  filter(state_abb == "TN") %>%
-  group_by(map_date, drought_lvl) %>%
-  summarise(area_pct, sum(area_pct, na.rm = TRUE), .groups = "drop")
-```
-
-**Join TN geometry to each time step**
-
-```{r}
-tn_anim_sf <- tn_sf %>%
-  slice(rep(1:n(), each = n_distinct(tn_drought_ts$map_date))) %>%
-  mutate(map_date = rep(sort(unique(tn_drought_ts$map_date)),
-                        each = nrow(tn_sf)))
-
-## now join drought info:
-
-tn_anim_sf <- tn_anim_sf %>%
-  left_join(tn_drought_ts, by = 'map_date')
-```
-
-### Building the base plot
-
-```{r}
-p <- ggplot(tn_anim_sf) +
-  geom_sf(aes(fill = drought_lvl), color = "white", linewidth = 0.5) +
-  scale_fill_manual(values = drought_colors, na.value = "grey80") +
-  labs(
-    title = "Tennessee Drought Conditions over 10 Years",
-    subtitle = "Date: {frame_time}",
-    fill = "Drought Level"
-  ) +
-  theme_minimal()
-
-## animate over time
-
-anim <- p +
-  transition_time(map_date) +
-  ease_aes("linear")
-
-## rendering the animation
-
-animate(anim,
-        fps = 10,
-        width = 700, 
-        height = 500)
-
-## saving the animation
-
-anim_save("tn_drought_animation.gif", anim)
-```
-
 # Tennessee at the county level
 
 I want to start looking at drought conditions at the county level because just one entire state being the same color over time is not...
@@ -337,43 +219,22 @@ drought_tn_county <- read.csv("dm_export_20010101_20211231.csv")
 
 ```
 
+## Clean the Tennessee Drought Data
+
 ```{r}
-drought_clean <- drought %>%
-  clean_names() %>%
-  mutate(
-    map_date = ymd(map_date) #converting the dates - be sure to pay attention to the structure of the date
-  )
-glimpse(drought_clean)
+## looking at it so we know what we're dealing with
 
+glimpse(drought_tn_county)
 
-  ## Always look and see what the dataset looks like before you start running the code so this way you can accurately determine what's happening and reduce the amount of headaches
-
-## Clean and Format drought levels
-
-drought_clean <- drought_clean %>%
-  mutate(
-    drought_lvl = factor(
-      drought_lvl,
-      levels = c("None", "D0", "D1", "D2", "D3", "D4"),
-      labels = c(
-        "No Drought",
-        "Abnormally Dry",
-        "Moderate Drought",
-        "Severe Drought",
-        "Extreme Drought",
-        "Exceptional Drought"
-      )
-    )
-  )
-
-glimpse(drought_clean)
 ```
 
+Now we need to use `mutate()` because we need to:
+
+1.  transform wide columns into long
+2.  Adjust the names of the counties
+3.  Re-label and re-factor all of the drought levels
+
 ```{r}
-
-names(counties_clean)
-
-
 counties_clean <- drought_tn_county %>%
   clean_names() %>%
   mutate(
@@ -393,6 +254,10 @@ counties_long <- counties_clean %>%
 
 counties_long <- counties_long %>%
   mutate(
+    county = county %>%
+           str_to_upper() %>%
+           str_replace("\\s+COUNTY\\s*$", " ") %>%
+           str_squish(),
     drought_lvl = factor(
       drought_lvl,
       levels = c("none", "d0", "d1", "d2", "d3", "d4"),
@@ -403,71 +268,231 @@ counties_long <- counties_long %>%
         "Severe Drought",
         "Extreme Drought",
         "Exceptional Drought"
-      )
+      ),
+      ordered = TRUE
     )
   )
-glimpse(counties_long)  
 
-# Total drought over time in tennessee
 
-county_summary <- counties_long %>%
-  group_by(map_date, drought_lvl) %>%
-  summarise(percent_area = sum(percent_area, na.rm = TRUE),
-            .groups = "drop")
+counties_long <- counties_long %>%
+  mutate(
+    drought_score = case_when(
+      drought_lvl == "No Drought" ~ 0,
+      drought_lvl == "Abnormally Dry" ~ 1,
+      drought_lvl == "Moderate Drought" ~ 2,
+      drought_lvl == "Severe Drought" ~ 3,
+      drought_lvl == "Extreme Drought" ~ 4,
+      drought_lvl == "Exception Drought" ~ 5
+    )
+  )
+
+view(counties_long)
+
+
+
 ```
 
-## Static map
-
-Will make an animated one later
+### Remove zero-area drought rows
 
 ```{r}
+counties_long <- counties_long %>%
+  filter(percent_area > 0)
+```
 
-date_of_interest <- as.Date("2021-07-13")
+### Keep the MOST SEVERE drought level per county/date
 
-tn_drought_day <- counties_long %>%
-  filter(map_date == date_of_interest)
+```{r}
+tn_drought_map <- counties_long %>%
+  group_by(map_date, county) %>%
+  slice_max(
+    drought_score,
+    n = 1,
+    with_ties = FALSE
+  ) %>%
+  ungroup()
 
-## Changing all the names to uppercase
+### Verfiy that no duplicates exist, so the return should be '0 rows'
 
-tn_drought_day <- tn_drought_day %>%
-  mutate(county = toupper(county))
+tn_drought_map %>%
+  count(map_date, county) %>%
+  filter(n > 1)
 
+
+```
+
+Now we want to reduce to **one** drought level **per county** **per day**
+
+This prevents:
+
+- duplicated counties
+
+- multiple fills per polygon
+
+- broken animations
+
+However, we keep the dominant drought class
+
+```{r}
+tn_drought_map <- tn_drought_clean %>%
+  group_by(map_date, county) %>%
+  slice_max(order_by = drought_score, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+tn_drought_map %>%
+  count(drought_lvl)
+```
+
+Now we have a completely cleaned dataset
+
+## Next we download Tennessee County geometries
+
+```{r}
+options(tigris_use_cache = TRUE)
+
+tn_counties_sf <- counties(
+  state = "TN",
+  cb = TRUE,
+  class = "sf"
+)
+```
+
+### Clean the county names in the geometry
+
+```{r}
 tn_counties_sf <- tn_counties_sf %>%
-  mutate(NAME = toupper(NAME))
-
-## Needed to drop the "County" which was in the TN_drough_day, and that's why there was a weird mismatch. 
-
-
-tn_drought_day <- tn_drought_day %>%
-  mutate(county = str_remove(county, "\\s+COUNTY$"))
-
-tn_map <- tn_counties_sf %>%
-  left_join(tn_drought_day, by = c("NAME" = "county"))
-
-view(tn_map)
+  mutate(
+    NAME = NAME %>%
+      str_to_upper() %>%
+      str_squish()
+  )
 ```
 
-### Map
+### Join drought data to county polygons
 
 ```{r}
 
+tn_map_sf <- tn_counties_sf %>%
+  left_join(
+    tn_drought_map,
+    by = c("NAME" = "county")
+  )
+```
 
-ggplot(tn_map) +
-  geom_sf(aes(fill = drought_lvl), color = "black", linewidth = 0.1) +
-  scale_fill_manual(values = drought_colors, na.value = "grey85") +
+**ALWAYS CHECK THE JOIN!!!!!**
+
+```{r}
+
+tn_map_sf %>%
+  st_drop_geometry() %>%
+  count(drought_lvl)
+
+## if you get NA's the join didn't happen properly
+```
+
+------------------------------------------------------------------------
+
+# 🗺️Part 1 - Static Map
+
+------------------------------------------------------------------------
+
+## Filter to one date
+
+```{r}
+
+one_day <- as.Date("2021-07-13")
+
+tn_static <- tn_map_sf %>%
+  filter(map_date == one_day)
+
+```
+
+## Create static drought map
+
+```{r}
+static <- ggplot(tn_static) +
+  geom_sf(aes(fill = drought_lvl),
+          color = "black",
+          linewidth = 0.15) +
+  scale_fill_manual(
+    values = drought_colors,
+    na.value = "grey85"
+  ) +
   labs(
-    title = "Tennessee Drought Conditions",
-    subtitle = as.character(date_of_interest),
+    title = "Tennessee County Drought Conditions",
+    subtitle = paste("Date:", one_day),
     fill = "Drought Level"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
 
-tn_map %>%
-  st_drop_geometry() %>%
-  count(NAME, drought_lvl)
+ggsave("drought map 2021.jpg", plot = static, height = 5, width = 7)
 ```
+
+------------------------------------------------------------------------
+
+# Part 2 - Animated County Drought Map
+
+------------------------------------------------------------------------
+
+## Prep the map
 
 ```{r}
 
+p <- ggplot(tn_map_sf) +
+  geom_sf(aes(fill = drought_lvl,
+              group = NAME),
+          color = 'black',
+          linewidth = 0.1) +
+  scale_fill_manual(
+    values = drought_colors,
+    na.value = "grey85"
+  ) +
+  labs(
+    title = "10 Years of Tennessee County Drought Conditions",
+    subtitle = "Date: {frame_time}",
+    fill = "Drought Level"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
 
+## Build and render the animation
+
+```{r}
+
+# Building
+tn_anim <- p +
+  transition_time(map_date) +
+  ease_aes("linear")
+
+## Rendering
+
+animate(
+  tn_anim,
+  fps = 8,
+  width = 900,
+  height = 650,
+  duration = 25
+)
+
+## saving the animation
+
+anim_save(
+  "tennessee_drought_animation.gif",
+  animation = tn_anim
+)
+
+
+## checking the error message
+
+tn_map_sf %>%
+  st_drop_geometry() %>%
+  count(map_date, NAME) %>%
+  filter(n > 1)
 ```

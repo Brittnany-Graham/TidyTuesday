@@ -1,0 +1,26 @@
+---
+title: "Tennessee Drought Through Time"
+author: "Brittnany Graham"
+format: 
+  html:
+    theme: cosmo
+    css: midnight-style.css
+    code-fold: true
+    toc: true
+    number-sections: false
+execute:
+  echo: false
+  warning: false
+  message: false
+editor: visual
+---
+
+## County-Level Drought Conditions
+
+This map shows the most sever drought condition observed across Tennessee counties on July 13, 2021.
+
+![](drought map 2021.jpg){fig-align="center"}
+
+## Drought Evolution Through Time
+
+![](tennessee_drought_animation.gif){fig-align="center"}
